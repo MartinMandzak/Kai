@@ -1,4 +1,4 @@
-"""title"""
+"""Kai v2.0.0"""
 
 
 #imports
@@ -12,4 +12,9 @@ from sklearn import preprocessing, datasets, svm
 from sklearn.model_selection import train_test_split
 
 #vars   X == features Y == labels
-data = ndl.get('LBMA/GOLD', start_date = "1999-12-31")
+data = ndl.get('FRED/GDP')
+
+
+#main
+
+print(data.head())
