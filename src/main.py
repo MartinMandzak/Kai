@@ -30,27 +30,32 @@ data['EST. GBP'] = data['GBP (AVG)'].shift(-fc_out)
 data['EST. USD'] = data['USD (AVG)'].shift(-fc_out)
 data.dropna(inplace=True)
 
-X = np.array(data.drop(['EST. EURO','EST. GBP', 'EST. USD'],axis=1))
+X_euro = np.array(data.drop(['EST. EURO'],axis=1))
+X_gbp = np.array(data.drop(['EST. GBP'],axis=1))
+X_usd = np.array(data.drop(['EST. USD'],axis=1))
 Y_euro = np.array(data['EST. EURO'])
 Y_gbp = np.array(data['EST. GBP'])
 Y_usd = np.array(data['EST. USD'])
-X = preprocessing.scale(X)
+
+X_euro = preprocessing.scale(X_euro)
+X_gbp = preprocessing.scale(X_gbp)
+X_usd = preprocessing.scale(X_usd)
 
 #Train/test
-X_train, X_test, Y_euro_train, Y_euro_test, Y_gbp_train, Y_gbp_test, Y_usd_train, Y_usd_test = train_test_split(X, Y_euro,Y_gbp,Y_usd, test_size=0.2, random_state=42)
+X_euro_train, X_euro_test, X_gbp_train, X_gbp_test, X_usd_train, X_usd_test, Y_euro_train, Y_euro_test, Y_gbp_train, Y_gbp_test, Y_usd_train, Y_usd_test = train_test_split(X_euro,X_gbp,X_usd, Y_euro,Y_gbp,Y_usd, test_size=0.2, random_state=42)
 
 model_euro = LinearRegression()
 model_gbp = LinearRegression()
 model_usd = LinearRegression()
 
-model_euro.fit(X_train, Y_euro_train)
-model_gbp.fit(X_train, Y_gbp_train)
-model_usd.fit(X_train, Y_usd_train)
+model_euro.fit(X_euro_train, Y_euro_train)
+model_gbp.fit(X_gbp_train, Y_gbp_train)
+model_usd.fit(X_usd_train, Y_usd_train)
 
 #Predictions
-Y_euro_prediction = model_euro.predict(X_test)
-Y_gbp_prediction = model_gbp.predict(X_test)
-Y_usd_prediction = model_usd.predict(X_test)
+Y_euro_prediction = model_euro.predict(X_euro_test)
+Y_gbp_prediction = model_gbp.predict(X_gbp_test)
+Y_usd_prediction = model_usd.predict(X_usd_test)
 
 #main
 mse_euro = mean_squared_error(Y_euro_test, Y_euro_prediction)
@@ -75,22 +80,23 @@ print(f'Mean Squared Error: {mse_usd}')
 print(f'R-squared: {r2_usd}')
 
 #plt
-fig, (g1,g2,g3) = plt.subplots(3,1,sharex=False,figsize=(8,10))
+data.index = pd.to_datetime(data.index)
+fig, (g1,g2,g3) = plt.subplots(3,1,sharex=False,figsize=(12,12))
 
-g1.scatter(X_test[:, 2], Y_euro_test, color='black', label='Actual EURO')
-g1.plot(X_test[:, 2], Y_euro_prediction, color='blue', linewidth=1, label='Predicted EURO')
-g1.set_xlabel('EURO (AVG)')
-g1.set_ylabel('EST. EURO')
+g1.scatter(X_euro_test[:,2]*1/k, Y_euro_test, color='black', label='Actual EURO')
+g1.plot(X_euro_test[:,2]*1/k, Y_euro_prediction, color='blue', linewidth=0.3, label='Predicted EURO')
+g1.set_xlabel('Date')
+g1.set_ylabel('Value (EURO)')
 g1.legend()
 
-g2.scatter(X_test[:, 2], Y_gbp_test, color='black', label='Actual GBP')
-g2.plot(X_test[:, 2], Y_gbp_prediction, color='red', linewidth=1, label='Predicted GBP')
+g2.scatter(X_gbp_test[:,2]*1/k, Y_gbp_test, color='black', label='Actual GBP')
+g2.plot(X_gbp_test[:,2]*1/k, Y_gbp_prediction, color='red', linewidth=0.3, label='Predicted GBP')
 g2.set_xlabel('GBP (AVG)')
 g2.set_ylabel('EST. GBP')
 g2.legend()
 
-g3.scatter(X_test[:, 2], Y_usd_test, color='black', label='Actual USD')
-g3.plot(X_test[:, 2], Y_usd_prediction, color='green', linewidth=1, label='Predicted USD')
+g3.scatter(X_usd_test[:,2]*1/k, Y_usd_test, color='black', label='Actual USD')
+g3.plot(X_usd_test[:,2]*1/k, Y_usd_prediction, color='green', linewidth=0.3, label='Predicted USD')
 g3.set_xlabel('USD (AVG)')
 g3.set_ylabel('EST. USD')
 g3.legend()
