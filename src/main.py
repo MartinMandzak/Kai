@@ -35,11 +35,9 @@ clean_dataset(data_copy)
 data_copy = data_copy.interpolate()
 data_copy.dropna()
 
-
 print(data_copy.head())
-
 
 
 #graphs
 g1 = px.histogram(data_copy, x = 'Age')
-g1.show()
+#g1.show()
