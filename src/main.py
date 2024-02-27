@@ -2,19 +2,44 @@
 
 
 #imports
-import pandas as pd
-import nasdaqdatalink as ndl
-ndl.ApiConfig.api_key = "cV_5mV1fxDi_RfMox_wQ"
-import math
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn import preprocessing, datasets, svm
-from sklearn.model_selection import train_test_split
+import pandas as pd
+import plotly.express as px
 
-#vars   X == features Y == labels
-data = ndl.get('FRED/GDP')
+#VARS
+DATA = pd.read_csv('telecom_customer_churn.csv')
+#data preprocessing / did data_copy.columns
+data_copy = DATA.copy()
+data_copy.drop(['Customer ID','Zip Code','Longitude', 'Latitude','Churn Category', 'Churn Reason'],
+                axis = 'columns', inplace = True)
+data_copy.shape
+
+
+
+
+#methods
+'''
+~data inverts booleans, np.nan (notANumber) np.inf => infinity
+any(1) checks for True booleans
+'''
+def clean_dataset(data):
+    assert isinstance(data, pd.DataFrame)
+    data.dropna(inplace=True)
+    to_be_kept = ~data.isin([np.nan, np.inf, -np.inf]).any(1)
+    return data[to_be_kept]
+
 
 
 #main
+clean_dataset(data_copy)
+data_copy = data_copy.interpolate()
+data_copy.dropna()
 
-print(data.head())
+
+print(data_copy.head())
+
+
+
+#graphs
+g1 = px.histogram(data_copy, x = 'Age')
+g1.show()
