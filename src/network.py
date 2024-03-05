@@ -30,19 +30,6 @@ class Network(object):
         return a
 
     """
-    find the highest level of activation
-    """
-    def evaluate(self, test_data):
-        test_results = [(np.argmax(self.feed_forward(x)),y) for (x,y) in test_data]
-        return sum(int(x == y) for (x,y) in test_results)
-    
-    """
-    Fuck me.
-    """
-    def cost_derivative(self, output_activations,y):
-        return (output_activations-y)
-
-    """
     Stochastic gradient descent
     a fairly simple method which shuffles training data, creates batches and calls the update method
     update method completes 1 step of gradient descent
@@ -113,6 +100,18 @@ class Network(object):
 
         return (nabla_b,nabla_w)
 
+    """
+    find the highest level of activation
+    """
+    def evaluate(self, test_data):
+        test_results = [(np.argmax(self.feed_forward(x)),y) for (x,y) in test_data]
+        return sum(int(x == y) for (x,y) in test_results)
+    
+    """
+    Fuck me.
+    """
+    def cost_derivative(self, output_activations,y):
+        return (output_activations-y)
 
 #Network class end
 def sigmoid(z):
@@ -122,5 +121,3 @@ def sigmoid(z):
 def sigmoid_prime(z):
     return sigmoid(z) * (1- sigmoid(z))
 
-
-net = Network([2,3,1])
