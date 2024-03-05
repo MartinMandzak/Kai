@@ -12,7 +12,7 @@ class Network(object):
     sizes = num of neurons in each layer
     so [2,3,4,5] would be 4 layers of 2,3,4,5 neurons respectively with the first layer being the input layer
     biases = neurons in each layer
-    weights connection from current layer and previous layer
+    weights = connection from current layer and previous layer
     """
     def __init__(self, sizes):
         self.num_layers = len(sizes)
@@ -22,13 +22,25 @@ class Network(object):
 
     """
     parameter "a" is simply an input of the network
-    method returns network's output given a
     np.dot == matrix multiplication
     """
     def feed_forward(self,a):
         for b,w in zip(self.biases, self.weights):
             a = sigmoid(np.dot(w,a)+b)
         return a
+
+    """
+    find the highest level of activation
+    """
+    def evaluate(self, test_data):
+        test_results = [(np.argmax(self.feed_forward(x)),y) for (x,y) in test_data]
+        return sum(int(x == y) for (x,y) in test_results)
+    
+    """
+    Fuck me.
+    """
+    def cost_derivative(self, output_activations,y):
+        return (output_activations-y)
 
     """
     Stochastic gradient descent
@@ -71,12 +83,38 @@ class Network(object):
         self.weights = [w-(eta/len(mini_batch))*nw for w,nw in zip(self.weights, nabla_w)]
 
     """
-
+    Backpropagation, essentially a big fuckoff vector of sums of adjusted weights for our lovely little network to learn
     """
+    def backprop(self, x,y):
+        nabla_b = [np.zeroes(b.shape) for b in self.biases]
+        nabla_w = [np.zeroes(w.shape) for w in self.weights]
+    #feed_forward
+        activation = x
+        activations = [x]
+        z_vectors = []
+
+        for b,w in zip(self.biases, self.weights):
+            z = np.dot(w, activation)+b #weight * activation_vector + bias
+            z_vectors.append(z)
+
+            activation = sigmoid(z) #!!!
+            activations.append(activation)
+    #backpass
+        delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(z_vectors[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = np.dot(delta, activations[-2].transpose()) # rows := cols
+        
+        for L in range(2,self.num_layers):
+            z = z_vectors[-1]
+            sp = sigmoid_prime(z)
+            delta = np.dot(self.weights[-L+1].transpose(), delta) * sp
+            nabla_b[-1] = delta
+            nabla_w[-1] = np.dot(delta, activations[-L-1].trnaspose())
+
+        return (nabla_b,nabla_w)
 
 
-
-#class end
+#Network class end
 def sigmoid(z):
     return 1.0/(1.0+ np.exp(-z))
 
