@@ -36,13 +36,16 @@ class Network(object):
     then simply prints out current progress
     """
     def SGD(self, training_data,epochs,mini_batch_size,eta,test_data=None):
-        if test_data: n_test = len(list(test_data))
-        n = len(list(training_data))
+        training_data = list(training_data)
+        test_data = list(test_data)
+
+        if test_data: n_test = len(test_data)
+        n = len(training_data)
 
         for j in range(epochs):
-            random.shuffle(list(training_data))
+            random.shuffle(training_data)
             mini_batches = [
-                    list(training_data)[k:k+mini_batch_size] for k in range(0,n,mini_batch_size)]
+                    training_data[k:k+mini_batch_size] for k in range(0,n,mini_batch_size)]
 
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch,eta)
@@ -63,18 +66,19 @@ class Network(object):
 
         for x,y in mini_batch:
             delta_nabla_b, delta_nabla_w = self.backprop(x,y)
+
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
 
-        self.biases = [b - (eta / len(mini_batch)) * nb if len(mini_batch) != 0 else b for b, nb in zip(self.biases, nabla_b)]
-        self.weights = [w - (eta / len(mini_batch)) * nw if len(mini_batch) != 0 else w for w, nw in zip(self.weights, nabla_w)]
+        self.weights = [w - (eta / len(mini_batch)) * nw for w, nw in zip(self.weights, nabla_w)]
+        self.biases = [b - (eta / len(mini_batch)) * nb for b, nb in zip(self.biases, nabla_b)]
 
     """
     Backpropagation, essentially a big fuckoff vector of sums of adjusted weights for our lovely little network to learn
     """
     def backprop(self, x,y):
-        nabla_b = [np.zeroes(b.shape) for b in self.biases]
-        nabla_w = [np.zeroes(w.shape) for w in self.weights]
+        nabla_b = [np.zeros(b.shape) for b in self.biases]
+        nabla_w = [np.zeros(w.shape) for w in self.weights]
     #feed_forward
         activation = x
         activations = [x]
@@ -92,11 +96,11 @@ class Network(object):
         nabla_w[-1] = np.dot(delta, activations[-2].transpose()) # rows := cols
         
         for L in range(2,self.num_layers):
-            z = z_vectors[-1]
+            z = z_vectors[-L]
             sp = sigmoid_prime(z)
             delta = np.dot(self.weights[-L+1].transpose(), delta) * sp
-            nabla_b[-1] = delta
-            nabla_w[-1] = np.dot(delta, activations[-L-1].trnaspose())
+            nabla_b[-L] = delta
+            nabla_w[-L] = np.dot(delta, activations[-L-1].transpose())
 
         return (nabla_b,nabla_w)
 
