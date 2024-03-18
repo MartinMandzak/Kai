@@ -58,6 +58,8 @@ class Network(object):
     """
     updates mini batches by making them undergo 1 step of gradient descent using backpropagation
     "mini_batch" is a list of tuples "(x, y)", and "eta" is the learning rate
+    using backpropagation we get vectors of required adjustments which are then averaged out for the actual adjustment
+    then repeat on previous hidden layers
     ∇ == nabla
     """
     def update_mini_batch(self,mini_batch, eta):
@@ -75,6 +77,7 @@ class Network(object):
 
     """
     Backpropagation, essentially a big fuckoff vector of sums of adjusted weights for our lovely little network to learn
+    so the way it works that it calculates the activation for each digit each digit as a vector
     """
     def backprop(self, x,y):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
