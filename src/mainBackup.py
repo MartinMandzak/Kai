@@ -113,6 +113,7 @@ def get_features(data, feature_start, feature_end, target_start, target_end):
     dow = features_data.groupby('CustomerID')['dayofweek'].median().rename('purchase_dow_med')
     weekend =  features_data.groupby('CustomerID')['weekend'].mean().rename('purchase_weekend_prop')
     train_data = pd.DataFrame(index = rfm_train_test.index)
+    print(f"\n\nINDEX\n{rfm_train_test.index}\n\n") 
     train_data = train_data.join([total_rev, recency, frequency, t, time_between, avg_basket_value, avg_basket_size, returns, hour, dow, weekend])
     train_data = train_data.fillna(0)
     
