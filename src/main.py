@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-# ML Approach to LTV
+# ML Approach to CLV
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
