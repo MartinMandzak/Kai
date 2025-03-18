@@ -66,7 +66,7 @@ def build_model():
         layers.Dense(32, activation='relu'),
         layers.Dense(1)
     ])
-    optimizer = tf.keras.optimizers.Adam(0.000069)
+    optimizer = tf.keras.optimizers.Adam(0.00005)
     model.compile(loss='mse', optimizer=optimizer, metrics=['mae', 'mse'])
     return model
 
@@ -110,7 +110,7 @@ def evaluate(actual, predictions):
     axes[0].legend()
 
     # Binned Bar Chart
-    bins = np.linspace(0, max(max(actual), max(predictions)), 9)  
+    bins = np.linspace(0, max(max(actual), max(predictions)), 10)  
     actual_binned = np.histogram(actual, bins=bins)[0]
     predicted_binned = np.histogram(predictions, bins=bins)[0]
 
