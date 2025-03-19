@@ -114,21 +114,20 @@ def evaluate(actual, predictions):
     kde = sns.kdeplot(actual, color='blue', label='Actual', fill=True, ax=axes[0])
     kde = sns.kdeplot(predictions, color='red', label='Predicted', fill=True, ax=axes[0])
     
-    # Set custom x-ticks with smaller intervals
-    step = max(1, int(max_clv // 6))  # Ensures at least 6 intervals
-    axes[0].set_xticks(np.arange(0, max_clv + step, step))
+    # Set x-ticks at 2500 intervals
+    axes[0].set_xticks(np.arange(0, max_clv + 2500, 2500))
     axes[0].set_xlabel('CLV Value')
     axes[0].set_ylabel('Density')
     axes[0].set_title('KDE Distribution of Actual vs Predicted CLV')
     axes[0].legend()
 
     # --- Binned Bar Chart ---
-    # Use fewer bins (4 bins instead of 5)
-    bins = np.linspace(0, max_clv, 4)  # 4 bins = 3 intervals
+    # Create bins at 2500 intervals
+    bins = np.arange(0, max_clv + 2500, 2500)
     actual_binned = np.histogram(actual, bins=bins)[0]
     predicted_binned = np.histogram(predictions, bins=bins)[0]
     
-    bin_labels = [f"{int(bins[i])}-{int(bins[i+1])}" for i in range(len(bins)-1)]
+    bin_labels = [f"${int(bins[i])}-{int(bins[i+1])}" for i in range(len(bins)-1)]
     
     width = 0.4
     x = np.arange(len(bin_labels))
@@ -145,6 +144,7 @@ def evaluate(actual, predictions):
 
     plt.tight_layout()
     plt.show()
+
 
 evaluate(filtered_df['actual'], filtered_df['dnn_preds'])
 
