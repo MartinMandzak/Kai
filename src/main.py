@@ -101,11 +101,15 @@ early_history = model.fit(X_train, y_train, epochs=EPOCHS, validation_split=0.2,
 
 dnn_preds = model.predict(X_test).ravel()
 dnn_preds = np.expm1(dnn_preds)  # Reverse log transformation
-y_test = np.expm1(y_test)
+y_train = np.log1p(y_train.clip(lower=1e-6))
+y_test = np.log1p(y_test.clip(lower=1e-6))
 
 compare_df = pd.DataFrame({'dnn_preds': dnn_preds, 'actual': y_test}, index=range(len(y_test)))
 
 def evaluate(actual, predictions):
+    df = pd.DataFrame({'actual': actual, 'predictions': predictions}).dropna()  # Drop NaNs
+    actual, predictions = df['actual'], df['predictions']
+
     print(f"Total Sales Actual: {np.round(actual.sum())}")
     print(f"Total Sales Predicted: {np.round(predictions.sum())}")
     print(f"Individual R2 score: {r2_score(actual, predictions)}")
