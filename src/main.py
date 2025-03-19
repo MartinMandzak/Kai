@@ -97,7 +97,6 @@ def remove_outliers(df, column):
 filtered_df = remove_outliers(compare_df, 'actual')
 filtered_df = remove_outliers(filtered_df, 'dnn_preds')
 
-
 def evaluate(actual, predictions):
     if actual.empty or predictions.size == 0:
         raise ValueError("Evaluation dataset is empty!")
@@ -146,7 +145,5 @@ def evaluate(actual, predictions):
 
     plt.tight_layout()
     plt.show()
-
-
 evaluate(filtered_df['actual'], filtered_df['dnn_preds'])
 
