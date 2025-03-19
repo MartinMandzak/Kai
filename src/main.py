@@ -106,31 +106,31 @@ def evaluate(actual, predictions):
     print(f"Individual R2 score: {r2_score(actual, predictions)}")
     print(f"Individual Mean Absolute Error: {mean_absolute_error(actual, predictions)}")
     
-    plt.figure(figsize=(7,5))
-    sns.scatterplot(x=actual, y=predictions, alpha=0.5)
-    plt.xlabel("Actual CLV")
-    plt.ylabel("Predicted CLV")
-    plt.title("Actual vs Predicted CLV")
-
-        # Create figure with 2 subplots
+    # Create figure with 2 subplots
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
-    # KDE Plot
-    sns.kdeplot(actual, color='blue', label='Actual', fill=True, ax=axes[0])
-    sns.kdeplot(predictions, color='red', label='Predicted', fill=True, ax=axes[0])
+    
+    # --- KDE Plot ---
+    max_clv = max(actual.max(), predictions.max())
+    kde = sns.kdeplot(actual, color='blue', label='Actual', fill=True, ax=axes[0])
+    kde = sns.kdeplot(predictions, color='red', label='Predicted', fill=True, ax=axes[0])
+    
+    # Set custom x-ticks with smaller intervals
+    step = max(1, int(max_clv // 6))  # Ensures at least 6 intervals
+    axes[0].set_xticks(np.arange(0, max_clv + step, step))
     axes[0].set_xlabel('CLV Value')
     axes[0].set_ylabel('Density')
     axes[0].set_title('KDE Distribution of Actual vs Predicted CLV')
     axes[0].legend()
 
-    # Binned Bar Chart
-    bins = np.linspace(0, max(max(actual), max(predictions)), 5)  
+    # --- Binned Bar Chart ---
+    # Use fewer bins (4 bins instead of 5)
+    bins = np.linspace(0, max_clv, 4)  # 4 bins = 3 intervals
     actual_binned = np.histogram(actual, bins=bins)[0]
     predicted_binned = np.histogram(predictions, bins=bins)[0]
-
+    
     bin_labels = [f"{int(bins[i])}-{int(bins[i+1])}" for i in range(len(bins)-1)]
-
-    width = 0.4  
+    
+    width = 0.4
     x = np.arange(len(bin_labels))
     
     axes[1].bar(x - width/2, actual_binned, width=width, label='Actual', color='blue', alpha=0.7)
@@ -145,5 +145,6 @@ def evaluate(actual, predictions):
 
     plt.tight_layout()
     plt.show()
+
 evaluate(filtered_df['actual'], filtered_df['dnn_preds'])
 
