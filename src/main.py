@@ -115,8 +115,8 @@ def evaluate(actual, predictions):
     kde = sns.kdeplot(predictions, color='red', label='Predicted', fill=True, ax=axes[0])
     
     # Set x-ticks at 2500 intervals
-    axes[0].set_xticks(np.arange(0, 3000, 300))
-    axes[0].set_xbound(0,2500)
+    axes[0].set_xticks(np.arange(0, 3500, 350))
+    axes[0].set_xbound(0,3500)
     axes[0].set_xlabel('CLV Value')
     axes[0].set_ylabel('Density')
     axes[0].set_title('KDE Distribution of Actual vs Predicted CLV')
@@ -124,7 +124,7 @@ def evaluate(actual, predictions):
 
     # --- Binned Bar Chart ---
     # Create bins at 2500 intervals
-    bins = np.arange(0, 3000, 300)
+    bins = np.arange(0, 3500, 350)
     actual_binned = np.histogram(actual, bins=bins)[0]
     predicted_binned = np.histogram(predictions, bins=bins)[0]
     
