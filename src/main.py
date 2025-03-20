@@ -11,6 +11,7 @@ import modeling_fix as tfdocsFix
 
 # Evaluation
 from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.metrics import accuracy_score, confusion_matrix
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -65,9 +66,13 @@ def get_features(data, feature_start, feature_end, target_start, target_end):
 X_train, y_train = get_features(data, '2011-01-01', '2011-06-11', '2011-06-12', '2011-09-09')
 X_test, y_test = get_features(data, '2011-04-02', '2011-09-10', '2011-09-11', '2011-12-09')
 
+y_train_churn = (y_train == 0).astype(int)
+y_test_churn = (y_test == 0).astype(int)
+
 def build_model():
     model = keras.Sequential([
-        layers.Dense(32, activation='relu', input_shape=[len(X_train.columns)]),
+        keras.Input(shape=(len(X_train.columns),)),
+        layers.Dense(32, activation='relu'),
         layers.Dropout(0.3),
         layers.Dense(32, activation='relu'),
         layers.Dense(1)
@@ -76,13 +81,45 @@ def build_model():
     model.compile(loss='mse', optimizer=optimizer, metrics=['mae', 'mse'])
     return model
 
+# Build churn prediction model (classification)
+def build_churn_model():
+    model = keras.Sequential([
+        keras.Input(shape=(len(X_train.columns),)),
+        layers.Dense(32, activation='relu'),
+        layers.Dropout(0.3),
+        layers.Dense(32, activation='relu'),
+        layers.Dense(1, activation='sigmoid')  # Sigmoid for binary classification
+    ])
+    optimizer = tf.keras.optimizers.Adam(0.000069)
+    model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+    return model
+
 early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=20)
 
 model = build_model()
-early_history = model.fit(X_train, y_train, epochs=EPOCHS, validation_split=0.2, verbose=0, callbacks=[early_stop, tfdocsFix.EpochDots()])
+early_history = model.fit(X_train, y_train,
+                          epochs=EPOCHS,
+                          validation_split=0.2,
+                          verbose=0,
+                          callbacks=[early_stop, tfdocsFix.EpochDots()])
+
+churn_model = build_churn_model()
+# Using the same EPOCHS and early stopping as before
+churn_history = churn_model.fit(
+    X_train, y_train_churn,
+    epochs=EPOCHS,
+    validation_split=0.2,
+    verbose=0,
+    callbacks=[early_stop, tfdocsFix.EpochDots()])
+
 
 dnn_preds = model.predict(X_test).ravel()
 compare_df = pd.DataFrame({'dnn_preds': dnn_preds, 'actual': y_test}, index=X_test.index)
+
+# Predict churn probabilities on test set
+churn_preds = churn_model.predict(X_test).ravel()
+# Convert probabilities to binary classification (threshold 0.5)
+churn_preds_class = (churn_preds > 0.5).astype(int)
 
 def remove_outliers(df, column):
     """Removes outliers from a dataframe based on IQR method for a given column."""
@@ -105,6 +142,18 @@ def evaluate(actual, predictions):
     print(f"Total Sales Predicted: {np.round(predictions.sum())}")
     print(f"Individual R2 score: {r2_score(actual, predictions)}")
     print(f"Individual Mean Absolute Error: {mean_absolute_error(actual, predictions)}")
+
+    accuracy = accuracy_score(y_test_churn, churn_preds_class)
+    print("Churn Model Accuracy:", accuracy)
+
+    plt.figure(figsize=(10, 6))
+    #plt.plot(churn_history.history['accuracy'], label='Training Accuracy')
+    plt.plot(churn_history.history['val_accuracy'], label='Validation Accuracy')
+    plt.title('Churn Model Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.show()
     
     # Create figure with 2 subplots
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
