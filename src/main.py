@@ -10,7 +10,7 @@ import tensorflow_docs as tfdocs
 import modeling_fix as tfdocsFix
 
 # Evaluation
-from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 scaler = StandardScaler()
@@ -70,7 +70,6 @@ def get_features(data, feature_start, feature_end, target_start, target_end):
     returns = features_data.loc[features_data['Revenue'] < 0].groupby('CustomerID')['InvoiceNo'].nunique()
     returns = returns.rename('num_returns').reindex(total_rev.index).fillna(0)
 
-    # Removed: hour, dow, weekend features
     train_data = pd.concat([
         total_rev, recency, frequency, t, time_between,
         avg_basket_value, avg_basket_size, returns
@@ -116,7 +115,7 @@ def build_churn_model():
 def remove_outliers(df, column):
     """Removes outliers from a dataframe based on IQR method for a given column."""
     Q1 = df[column].quantile(0.005)
-    Q3 = df[column].quantile(0.995)
+    Q3 = df[column].quantile(0.90)
     IQR = Q3 - Q1
     lower_bound = Q1 - 1.5 * IQR
     upper_bound = Q3 + 1.5 * IQR
@@ -127,10 +126,14 @@ def evaluate(actual, predictions):
     if actual.empty or predictions.size == 0:
         raise ValueError("Evaluation dataset is empty!")
     
+    MAE = mean_absolute_error(actual, predictions)
+    RMSE = mean_squared_error(actual, predictions)
     print(f"Total Sales Actual: {np.round(actual.sum())}")
     print(f"Total Sales Predicted: {np.round(predictions.sum())}")
     print(f"Individual R2 score: {r2_score(actual, predictions)}")
-    print(f"Individual Mean Absolute Error: {mean_absolute_error(actual, predictions)}")
+    print(f"Individual Mean Absolute Error: {MAE}")
+    print(f"Individual Mean Squared Error: {RMSE}")
+    print(f"RMSE/MAE ratio: {RMSE/MAE}")
 
     accuracy = accuracy_score(y_test_churn, churn_preds_class)
     print("Churn Model Accuracy:", accuracy)
@@ -146,17 +149,18 @@ def evaluate(actual, predictions):
     
     # Create figure with 2 subplots
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
+    bins = np.linspace(0, np.percentile(actual, 90), 10)
+    
     # KDE Plot
-    sns.kdeplot(actual, color='blue', label='Actual', fill=True, ax=axes[0])
-    sns.kdeplot(predictions, color='red', label='Predicted', fill=True, ax=axes[0])
+    sns.kdeplot(actual, color='blue', label='Actual', fill=True, bw_adjust=0.5, ax=axes[0])
+    sns.kdeplot(predictions, color='red', label='Predicted', fill=True, bw_adjust=0.5, ax=axes[0])
+    axes[0].set_xlim(bins[0] - 50000, bins[-1])
     axes[0].set_xlabel('CLV Value')
     axes[0].set_ylabel('Density')
     axes[0].set_title('KDE Distribution of Actual vs Predicted CLV')
     axes[0].legend()
 
     # Binned Bar Chart
-    bins = np.linspace(0, max(max(actual), max(predictions)), 9)  
     actual_binned = np.histogram(actual, bins=bins)[0]
     predicted_binned = np.histogram(predictions, bins=bins)[0]
 
@@ -178,6 +182,7 @@ def evaluate(actual, predictions):
     plt.tight_layout()
     plt.show()
 
+'''
 X_train, y_train = get_features(data,
                                 '2021-01-01',
                                 '2023-06-01',
@@ -186,6 +191,19 @@ X_train, y_train = get_features(data,
 
 X_test, y_test = get_features(data,
                               '2022-01-01',
+                              '2024-06-01',
+                              '2024-06-02',
+                              '2024-12-31')
+
+'''
+X_train, y_train = get_features(data,
+                                '2023-01-01',
+                                '2023-06-01',
+                                '2023-06-02',
+                                '2023-12-31')
+
+X_test, y_test = get_features(data,
+                              '2024-01-01',
                               '2024-06-01',
                               '2024-06-02',
                               '2024-12-31')

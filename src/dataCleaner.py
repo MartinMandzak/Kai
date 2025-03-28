@@ -43,8 +43,10 @@ filtered_df["Quantity"] = filtered_df["Quantity"].apply(
                             clean_nums
                         )
 
-filtered_df = filtered_df[filtered_df[revenue] != 0]
-filtered_df = filtered_df[filtered_df[quantity] != 0]
+filtered_df = filtered_df[filtered_df[revenue] > 0]
+filtered_df = filtered_df[filtered_df[quantity] > 0]
 filtered_df = filtered_df[filtered_df['Year'] != 2025]
+
+filtered_df = filtered_df.drop_duplicates()
 
 filtered_df.to_excel("./data/AnonymisedData.xlsx", index=False)
