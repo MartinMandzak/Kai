@@ -34,7 +34,7 @@ class CyclicLR(keras.callbacks.Callback):
         self.iterations += 1
 
 
-EPOCHS = 300
+EPOCHS = 250
 
 # Load and preprocess data
 data = pd.read_excel('./data/AnonymisedData.xlsx')
@@ -215,9 +215,10 @@ y_test_churn = (y_test == 0).astype(int)
 
 # Model training
 early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=50)
-early_stop_churn = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=150, mode='max')
+early_stop_churn = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=40, mode='max')
 
 clr =CyclicLR(base_lr = 0.000069, max_lr = 0.00069)
+cclr =CyclicLR(base_lr = 0.00069, max_lr = 0.0069)
 
 # Rebuild model with optimal learning rate (adjust based on plot)
 model = build_model(lr=0.000069)
@@ -234,7 +235,7 @@ churn_history = churn_model.fit(
     epochs=EPOCHS,
     validation_split=0.2,
     verbose=0,
-    callbacks=[early_stop_churn, clr])
+    callbacks=[early_stop_churn, cclr])
 
 # Predictions
 dnn_preds = model.predict(X_test).ravel()
@@ -247,7 +248,7 @@ filtered_df = remove_outliers(filtered_df, 'dnn_preds')
 # Filter churn predictions to match filtered_df
 mask = filtered_df.index
 churn_preds = churn_model.predict(X_test).ravel()
-churn_preds_class = (churn_preds > 0.9).astype(int)  # Adjusted threshold
+churn_preds_class = (churn_preds > 0.95).astype(int)  # Adjusted threshold
 churn_preds_class = churn_preds_class[X_test.index.isin(mask)]
 y_test_churn_filtered = y_test_churn[X_test.index.isin(mask)]
 
