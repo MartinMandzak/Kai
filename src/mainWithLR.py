@@ -2,19 +2,14 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, date
 
-# ML Approach to CLV
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow_docs as tfdocs
 
-# Evaluation
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from sklearn.metrics import accuracy_score
-#from sklearn.preprocessing import StandardScaler
-#scaler = StandardScaler()
 
-# Plotting
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -36,10 +31,8 @@ class CyclicLR(keras.callbacks.Callback):
 
 EPOCHS = 250
 
-# Load and preprocess data
 data = pd.read_excel('./data/AnonymisedData.xlsx')
 
-# Create essential columns
 data['Revenue'] = pd.to_numeric(data['Revenue'], errors='coerce').fillna(0)
 data['Quantity'] = pd.to_numeric(data['Quantity'], errors='coerce').fillna(0)
 data['InvoiceDate'] = pd.to_datetime(
@@ -57,13 +50,12 @@ def get_features(data, feature_start, feature_end, target_start, target_end):
     
     print(f'Using data from {(pd.to_datetime(feature_end) - pd.to_datetime(feature_start)).days} days')
     
-    # Feature calculations
     total_rev = features_data.groupby('CustomerID')['Revenue'].sum().rename('total_revenue').astype(float)
     recency = (features_data.groupby('CustomerID')['date'].max() - 
                features_data.groupby('CustomerID')['date'].min()).apply(lambda x: x.days).rename('recency')
     frequency = features_data.groupby('CustomerID')['InvoiceNo'].nunique().rename('frequency').astype(int)
     
-    latest_date = features_data['date'].max()  # Fix: Use max date from feature data
+    latest_date = features_data['date'].max()
     t = (
         features_data.groupby('CustomerID')['date'].min()
         .apply(lambda x: (latest_date - x).days)
@@ -83,7 +75,6 @@ def get_features(data, feature_start, feature_end, target_start, target_end):
         avg_basket_value, avg_basket_size, returns
     ], axis=1).fillna(0)
 
-    # Target processing
     target_data = data.loc[(data.date >= pd.to_datetime(target_start).date()) & 
                          (data.date <= pd.to_datetime(target_end).date()), :]
     
@@ -118,19 +109,56 @@ def build_churn_model(lr=0.001):
     return model
 
 def remove_outliers(df, column):
-    """Removes outliers from a dataframe based on IQR method."""
-    Q1 = df[column].quantile(0.05)
-    Q3 = df[column].quantile(0.95)
+    Q1 = df[column].quantile(0.005)
+    Q3 = df[column].quantile(0.925)
     IQR = Q3 - Q1
     lower_bound = Q1 - 1.5 * IQR
     upper_bound = Q3 + 1.5 * IQR
     return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
 
+def show_top_customers(filtered_df, churn_preds, top_n=10):
+    churn_probs = pd.Series(churn_preds.ravel(), index=X_test.index)
+    churn_probs = churn_probs.loc[filtered_df.index]
+    
+    display_df = filtered_df.copy()
+    display_df['churn_rate_%'] = (churn_probs * 100).round(4)
+    
+    curr_format = lambda x: f"{x:,.2f}€"
+    display_df['predicted_clv'] = display_df['dnn_preds'].apply(curr_format)
+    display_df['actual_clv'] = display_df['actual'].apply(curr_format)
+    
+    top_clv = display_df.sort_values('dnn_preds', ascending=False).head(top_n)
+   
+    median_value = display_df['actual'].median()
+    display_df['median_diff'] = (display_df['actual'] - median_value).abs()
+    median_clv = display_df.sort_values('median_diff').head(top_n)
+    
+    high_churn = display_df[(display_df['churn_rate_%'] > 0) &
+                            (display_df['churn_rate_%']!= 100)].sort_values('churn_rate_%', ascending=False).head(top_n)
+    
+    def print_section(df, title, cols):
+        if not df.empty:
+            print(f"\n{title}:")
+            print(df[cols].to_string(float_format="%.4f", header=True))
+        else:
+            print(f"\n{title}: No customers found")
+
+    print_section(top_clv, 
+                 "Top 10 Customers by Predicted CLV",
+                 ['predicted_clv', 'actual_clv', 'churn_rate_%'])
+    
+    print_section(median_clv,
+                 "\nMedian CLV Customers (Closest to Median Value)",
+                 ['predicted_clv', 'actual_clv', 'churn_rate_%'])
+    
+    print_section(high_churn,
+                 "\nTop 10 Customers by Churn Risk",
+                 ['churn_rate_%', 'predicted_clv', 'actual_clv'])    
+
 def evaluate(actual, predictions, y_test_churn_filtered, churn_preds_class, churn_history=None):
     if actual.empty or predictions.size == 0:
         raise ValueError("Evaluation dataset is empty!")
     
-    # Regression Metrics
     MAE = mean_absolute_error(actual, predictions)
     MSE = mean_squared_error(actual, predictions)
     RMSE = np.sqrt(MSE)
@@ -141,14 +169,13 @@ def evaluate(actual, predictions, y_test_churn_filtered, churn_preds_class, chur
     print(f"Root Mean Squared Error: {RMSE}")
     print(f"RMSE/MAE ratio: {RMSE/MAE}")
     
-    # Classification Metrics
     if len(y_test_churn_filtered) > 0:
         accuracy = accuracy_score(y_test_churn_filtered, churn_preds_class)
         print("Churn Model Accuracy:", accuracy)
     else:
         print("No samples remaining for churn evaluation")
     
-    # First plot - Churn Accuracy (standalone)
+    # Churn Accuracy
     plt.figure(figsize=(6, 5))
     if churn_history is not None:
         plt.plot(churn_history.history['val_accuracy'], label='Validation Accuracy')
@@ -159,7 +186,7 @@ def evaluate(actual, predictions, y_test_churn_filtered, churn_preds_class, chur
     plt.tight_layout()
     plt.show()
     
-    # Second plot - KDE and Binned Bar Chart together
+    # KDE and Binned Bar Chart together
     plt.figure(figsize=(15, 5))
     
     # KDE Plot
@@ -191,8 +218,8 @@ def evaluate(actual, predictions, y_test_churn_filtered, churn_preds_class, chur
     
     plt.tight_layout()
     plt.show()
+    show_top_customers(filtered_df, churn_preds)
 
-# Data loading and feature engineering
 X_train, y_train = get_features(data,
                                 '2023-01-01',
                                 '2023-06-01',
@@ -209,18 +236,15 @@ n_feats = len(X_train.columns)
 train_index = X_train.index
 test_index = X_test.index
 
-# Churn labels
 y_train_churn = (y_train == 0).astype(int)
 y_test_churn = (y_test == 0).astype(int)
 
-# Model training
 early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=50)
 early_stop_churn = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=40, mode='max')
 
 clr =CyclicLR(base_lr = 0.000069, max_lr = 0.00069)
 cclr =CyclicLR(base_lr = 0.00069, max_lr = 0.0069)
 
-# Rebuild model with optimal learning rate (adjust based on plot)
 model = build_model(lr=0.000069)
 history = model.fit(X_train, y_train,
                    epochs=EPOCHS,
@@ -228,7 +252,6 @@ history = model.fit(X_train, y_train,
                    verbose=0,
                    callbacks=[early_stop, clr])
 
-# Churn model training
 churn_model = build_churn_model(lr=0.000069)
 churn_history = churn_model.fit(
     X_train, y_train_churn,
@@ -237,20 +260,17 @@ churn_history = churn_model.fit(
     verbose=0,
     callbacks=[early_stop_churn, cclr])
 
-# Predictions
 dnn_preds = model.predict(X_test).ravel()
 compare_df = pd.DataFrame({'dnn_preds': dnn_preds, 'actual': y_test}, index=test_index)
 
-# Remove outliers
 filtered_df = remove_outliers(compare_df, 'actual')
 filtered_df = remove_outliers(filtered_df, 'dnn_preds')
 
-# Filter churn predictions to match filtered_df
 mask = filtered_df.index
 churn_preds = churn_model.predict(X_test).ravel()
-churn_preds_class = (churn_preds > 0.95).astype(int)  # Adjusted threshold
+churn_preds_class = (churn_preds > 0.95).astype(int)  # Adjustments to threshold
 churn_preds_class = churn_preds_class[X_test.index.isin(mask)]
 y_test_churn_filtered = y_test_churn[X_test.index.isin(mask)]
 
-# Evaluation
 evaluate(filtered_df['actual'], filtered_df['dnn_preds'], y_test_churn_filtered, churn_preds_class, churn_history)
+
