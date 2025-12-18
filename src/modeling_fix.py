@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+
+'''
+THIS IS THE ONLY COMMENT FROM ME
+
+Yea so here I just had an issue where my import wasn't working for whatever reason
+so I just took the entire file for the function I needed and had it here locally because I was so done trying to fix it and really didn't have another day to spend on it.
+'''
+
+
 import tensorflow.compat.v2 as tf
 
 
